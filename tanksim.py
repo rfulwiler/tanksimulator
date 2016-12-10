@@ -9,17 +9,17 @@ class Brewhouse:
         self.volume = 0
 
 class Tank:
-    def __init__(self, name, turns, brew):
+    def __init__(self, name, turns):
         self.name = name
         self.brews = 0
         self.maxbrews = turns
-        self.currentBrew = None
+        self.brew = Brew()
         self.fermdays = 0
-        self.finishdays = brew.fermtime if brew else 0
+        self.finishdays = self.brew.fermtime if self.brew else 0
         self.totalBBLs = 0
-        self.brand = brew.brand
-        self.bYield = brew.bYield
-        self.cYield = brew.cYield
+        self.brand = self.brew.brand
+        self.bYield = self.brew.bYield
+        self.cYield = self.brew.cYield
 
     def filled(self):
         if self.brews == self.maxbrews:
@@ -71,17 +71,23 @@ class Brew:
 
 
 def generate_tanks(count_240, count_90):
-      tanks = []
-      for i in range(count_240):
-          # first tank is named 'Large 0', second 'Large 1', etc
-          tanks.append(Tank('Large ' + str(i), 0, get_random_brew()))
+    tanks = []
+    for i in range(count_240):
+        tanks.append(Tank('(240)FV ' + str(i), 3))
+    for i in range(count_90):
+        tanks.append(Tank('(90)FV ' + str(i), 1))
+    return tanks
+
+def get_new_brew():
+    newbrew = Brew()
+    return newbrew
 
 def simulation(start,end,tanks):
 
   endDate = end
   delta = datetime.timedelta(days=1)
   d = start
-  weekend = set([])
+  weekend = set([5,6])
   turn = 1
   brewcheck = 0
   weekSums = []
@@ -102,19 +108,20 @@ def simulation(start,end,tanks):
     for tank in tanks:
         
         emptyList = emptyTanks()
-        brewcheck = 0
         
         while tank.filled() == False and d.weekday() not in weekend and turn < 4:
             tank.brews += 1
+            if tank.brews == 1:
+                """ here would be where I should randomize brew at each fill.  What is below isn't working though... """
+                tank.brew = get_new_brew()
+                print "Tank ", tank.name, " filled with ", tank.brand
             writer.writerow( (tank.name, tank.brand, d.strftime("%a %Y-%m-%d"), turn) )
             turn += 1
-            brewcheck = 1
         
         if len(emptyList) == 0 or d.weekday() in weekend:
             turn += 1
             if turn < 4:
                 writer.writerow( ("EMPTY", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
-        brewcheck = 0
         
         if turn > 3:
             turn = 1
@@ -145,24 +152,27 @@ start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
 end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
   
 
-for i in range(1):
-    
-    FV1  = Tank('FV101',3,Brew())
-    FV2  = Tank('FV102',3,Brew())
-    FV3  = Tank('FV103',1,Brew())
-    FV4  = Tank('FV104',3,Brew())
-    FV5  = Tank('FV105',0,Brew())
-    FV6  = Tank('FV201',1,Brew())
-    FV7  = Tank('FV202',1,Brew())
-    FV8  = Tank('FV203',3,Brew())
-    FV9  = Tank('FV204',1,Brew())
-    FV10 = Tank('FV205',1,Brew())
-    FV11 = Tank('FV206',1,Brew())
-    FV12 = Tank('FV207',1,Brew())
-    FV13 = Tank('FV208',1,Brew())
-    FV14 = Tank('FV209',1,Brew())
+for i in range(5):
 
-    tanks = [FV1, FV2, FV3, FV4, FV5, FV6, FV7, FV8, FV9, FV10, FV11, FV12, FV13, FV14]
+    tanks = generate_tanks(5,7)
+ 
+
+#    FV1  = Tank('FV101',3,Brew())
+#    FV2  = Tank('FV102',3,Brew())
+#    FV3  = Tank('FV103',1,Brew())
+#    FV4  = Tank('FV104',3,Brew())
+#    FV5  = Tank('FV105',0,Brew())
+#    FV6  = Tank('FV201',1,Brew())
+#    FV7  = Tank('FV202',1,Brew())
+#    FV8  = Tank('FV203',3,Brew())
+#    FV9  = Tank('FV204',1,Brew())
+#    FV10 = Tank('FV205',1,Brew())
+#    FV11 = Tank('FV206',1,Brew())
+#    FV12 = Tank('FV207',1,Brew())
+#    FV13 = Tank('FV208',1,Brew())
+#    FV14 = Tank('FV209',1,Brew())
+
+#    tanks = [FV1, FV2, FV3, FV4, FV5, FV6, FV7, FV8, FV9, FV10, FV11, FV12, FV13, FV14]
 
     simulation(start,end,tanks)
 
