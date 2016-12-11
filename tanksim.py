@@ -20,12 +20,22 @@ class Tank:
         self.brand = self.brew.brand
         self.bYield = self.brew.bYield
         self.cYield = self.brew.cYield
+        self.pYield = self.brew.pYield
 
     def filled(self):
         if self.brews == self.maxbrews:
             return True
         else:
             return False
+    
+    def updateFill(self):
+        self.brew = Brew()
+        self.finishdays = self.brew.fermtime if self.brew else 0
+        self.brand = self.brew.brand
+        self.bYield = self.brew.bYield
+        self.cYield = self.brew.cYield
+        self.pYield = self.brew.pYield
+
 
     def dayTick(self):
         if self.brews == self.maxbrews:
@@ -33,7 +43,7 @@ class Tank:
 
     def checkFinish(self):
         if self.fermdays >= self.finishdays:
-            self.totalBBLs = self.totalBBLs + (self.brews * self.bYield * (self.cYield/100) * .94)
+            self.totalBBLs = self.totalBBLs + (self.brews * self.bYield * (self.cYield/100) * (self.pYield/100))
             self.brews = 0
             self.fermdays = 0
     
@@ -69,6 +79,8 @@ class Brew:
                 self.bYield = np.random.normal(85, 2, 1)
                 self.cYield = np.random.normal(80, 2, 1)
 
+            self.pYield = np.random.normal(94, 2, 1)
+
 
 def generate_tanks(count_240, count_90):
     tanks = []
@@ -78,9 +90,6 @@ def generate_tanks(count_240, count_90):
         tanks.append(Tank('(90)FV ' + str(i), 1))
     return tanks
 
-def get_new_brew():
-    newbrew = Brew()
-    return newbrew
 
 def simulation(start,end,tanks):
 
@@ -91,6 +100,7 @@ def simulation(start,end,tanks):
   turn = 1
   brewcheck = 0
   weekSums = []
+  
   f = open('testCSV.csv', 'w+')
   writer = csv.writer(f)
   writer.writerow( ('Tank', 'Brand', 'Date', 'Turn Bucket') )
@@ -112,9 +122,9 @@ def simulation(start,end,tanks):
         while tank.filled() == False and d.weekday() not in weekend and turn < 4:
             tank.brews += 1
             if tank.brews == 1:
-                """ here would be where I should randomize brew at each fill.  What is below isn't working though... """
-                tank.brew = get_new_brew()
-                print "Tank ", tank.name, " filled with ", tank.brand
+                # fill tank with random brew
+                tank.updateFill()
+                #print "Tank ", tank.name, " filled with ", tank.brand, tank.finishdays
             writer.writerow( (tank.name, tank.brand, d.strftime("%a %Y-%m-%d"), turn) )
             turn += 1
         
@@ -150,31 +160,14 @@ def simulation(start,end,tanks):
 #RUN SIMULATION!!
 start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
 end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
-  
+tanks = generate_tanks(5,7) 
 
 for i in range(5):
 
-    tanks = generate_tanks(5,7)
- 
-
-#    FV1  = Tank('FV101',3,Brew())
-#    FV2  = Tank('FV102',3,Brew())
-#    FV3  = Tank('FV103',1,Brew())
-#    FV4  = Tank('FV104',3,Brew())
-#    FV5  = Tank('FV105',0,Brew())
-#    FV6  = Tank('FV201',1,Brew())
-#    FV7  = Tank('FV202',1,Brew())
-#    FV8  = Tank('FV203',3,Brew())
-#    FV9  = Tank('FV204',1,Brew())
-#    FV10 = Tank('FV205',1,Brew())
-#    FV11 = Tank('FV206',1,Brew())
-#    FV12 = Tank('FV207',1,Brew())
-#    FV13 = Tank('FV208',1,Brew())
-#    FV14 = Tank('FV209',1,Brew())
-
-#    tanks = [FV1, FV2, FV3, FV4, FV5, FV6, FV7, FV8, FV9, FV10, FV11, FV12, FV13, FV14]
-
     simulation(start,end,tanks)
+
+# add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
+# random unplanned downtime, yield entry, split tanks overnight boolean, ...
 
 
 
