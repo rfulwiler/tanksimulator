@@ -147,18 +147,16 @@ def simulation(start,end,tanks,maxturns,daysoff):
   #print "total bbls for period:  ", bblSum
   f.close()
 
-#RUN SIMULATION!!
-start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
-end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
-tanks = generate_tanks(5,7) 
-maxturns = 3
-daysoff = set([5,6])
+# RUN SIMULATION!!
+if __name__ == '__main__':
+    start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
+    end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
+    tanks = generate_tanks(5,7) 
+    maxturns = 3
+    daysoff = set([5,6])
 
-for i in range(5):
+    for i in range(5):
+        simulation(start,end,tanks,maxturns,daysoff)
 
-    simulation(start,end,tanks,maxturns,daysoff)
-
-# add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
-# random unplanned downtime, yield entry, split tanks overnight boolean, ...
-
-
+    # add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
+    # random unplanned downtime, yield entry, split tanks overnight boolean, ...
