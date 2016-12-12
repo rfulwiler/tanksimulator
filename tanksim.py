@@ -3,15 +3,11 @@ import random
 import numpy as np
 import csv
 
-class Brewhouse:
-    def __init__(self):
-        self.turnspot = 1
-        self.volume = 0
 
 class Tank:
     def __init__(self, name, turns):
         self.name = name
-        self.brews = 0
+        self.brews = 0 #
         self.maxbrews = turns
         self.brew = Brew()
         self.fermdays = 0
@@ -90,22 +86,7 @@ def generate_tanks(count_240, count_90):
         tanks.append(Tank('(90)FV ' + str(i), 1))
     return tanks
 
-
-def simulation(start,end,tanks):
-
-  endDate = end
-  delta = datetime.timedelta(days=1)
-  d = start
-  weekend = set([5,6])
-  turn = 1
-  brewcheck = 0
-  weekSums = []
-  
-  f = open('testCSV.csv', 'w+')
-  writer = csv.writer(f)
-  writer.writerow( ('Tank', 'Brand', 'Date', 'Turn Bucket') )
-
-  def emptyTanks():
+def emptyTanks():
     emptyList = []
     for tank in tanks:
         if tank.filled() == False:
@@ -113,13 +94,28 @@ def simulation(start,end,tanks):
     return emptyList        
     emptyList = []
 
+def simulation(start,end,tanks,maxturns):
+
+  d = start
+  endDate = end
+  delta = datetime.timedelta(days=1)
+  weekend = set([5,6])
+  turn = 1
+  weekSums = []
+  
+
+  f = open('testCSV.csv', 'w+')
+  writer = csv.writer(f)
+  writer.writerow( ('Tank', 'Brand', 'Date', 'Turn Bucket') )
+
+
   while d <= end:
 
     for tank in tanks:
         
         emptyList = emptyTanks()
         
-        while tank.filled() == False and d.weekday() not in weekend and turn < 4:
+        while tank.filled() == False and d.weekday() not in weekend and turn <= maxturns:
             tank.brews += 1
             if tank.brews == 1:
                 # fill tank with random brew
@@ -129,11 +125,11 @@ def simulation(start,end,tanks):
             turn += 1
         
         if len(emptyList) == 0 or d.weekday() in weekend:
-            turn += 1
-            if turn < 4:
+            if turn <= maxturns:
                 writer.writerow( ("EMPTY", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
+            turn += 1
         
-        if turn > 3:
+        if turn > maxturns:
             turn = 1
             d += delta
             for tank in tanks:
@@ -161,10 +157,11 @@ def simulation(start,end,tanks):
 start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
 end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
 tanks = generate_tanks(5,7) 
+maxturns = 3
 
 for i in range(5):
 
-    simulation(start,end,tanks)
+    simulation(start,end,tanks,maxturns)
 
 # add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
 # random unplanned downtime, yield entry, split tanks overnight boolean, ...
