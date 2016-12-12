@@ -3,86 +3,77 @@ import random
 import numpy as np
 import csv
 
-class Brewhouse:
-    def __init__(self):
-        self.turnspot = 1
-        self.volume = 0
-
 class Tank:
     def __init__(self, name, turns):
         self.name = name
-        self.brews = 0
-        self.maxbrews = turns
-        self.brew = Brew()
+        self.num_brews_in_tank = 0
+        self.maxnum_brews_in_tank = turns
+        # The type of brew in the tank
+        self.brand = None
+        # Counter for days of fermentation -- only increments when tank is filled
         self.fermdays = 0
-        self.finishdays = self.brew.fermtime if self.brew else 0
+        # Total barrels produced from one fill of the tank 
         self.totalBBLs = 0
-        self.brand = self.brew.brand
-        self.bYield = self.brew.bYield
-        self.cYield = self.brew.cYield
-        self.pYield = self.brew.pYield
 
-    def filled(self):
-        if self.brews == self.maxbrews:
-            return True
-        else:
-            return False
+    def is_filled(self):
+        return self.num_brews_in_tank == self.maxnum_brews_in_tank
     
-    def updateFill(self):
-        self.brew = Brew()
-        self.finishdays = self.brew.fermtime if self.brew else 0
-        self.brand = self.brew.brand
-        self.bYield = self.brew.bYield
-        self.cYield = self.brew.cYield
-        self.pYield = self.brew.pYield
+    def update_fill(self):
+        """Set a new brand for the tank"""
+        self.brand = Brand()
 
-
-    def dayTick(self):
-        if self.brews == self.maxbrews:
+    def day_tick(self):
+        """When tank is full, increment fermdays by 1"""
+        if self.is_filled():
             self.fermdays += 1
-
-    def checkFinish(self):
-        if self.fermdays >= self.finishdays:
-            self.totalBBLs = self.totalBBLs + (self.brews * self.bYield * (self.cYield/100) * (self.pYield/100))
-            self.brews = 0
-            self.fermdays = 0
     
-class Brew:
+    def get_volume(self):
+        """Factor in brew yield, cellar yield, packaging yield per each brew in tank"""
+        return self.num_brews_in_tank * self.brand.bYield * (self.brand.cYield/100) * (self.brand.pYield/100)
+
+    def reset_tank_if_complete(self):
+        if self.brand and self.fermdays >= self.brand.fermtime:
+            self.totalBBLs = self.totalBBLs + self.get_volume() 
+            self.num_brews_in_tank = 0
+            self.fermdays = 0
+
+class Brand:
     def __init__(self):
-            self.brandNum = random.randrange(1,1000)
-            if self.brandNum < 600:
-                self.brand = 'IPA'
-            if self.brandNum >= 600:
-                self.brand = 'SUM'
-            if self.brandNum > 900:
-                self.brand = 'BRO'
-            
-            if self.brand == 'IPA':
-                self.fermtime = 10
-            elif self.brand == 'SUM':
-                self.fermtime = 9
-            elif self.brand == 'BRO':
-                self.fermtime = 12
-            else:
-                self.fermtime = 10
+        brands = {
+            "IPA": {
+                "fermtime": 10,
+                "bYield": np.random.normal(87.5, 1, 1),
+                "cYield": np.random.normal(86, 2, 1),
+            },
+            "SUM": {
+                "fermtime": 9, 
+                "bYield": np.random.normal(88.5, 1, 1),
+                "cYield": np.random.normal(86, 2, 1),
+            },
+            "BRO": {
+                "fermtime": 12, 
+                "bYield": np.random.normal(75, 2, 1),
+                "cYield": np.random.normal(75, 2, 1),
+            },
+        }
 
-            if self.brand == 'IPA':
-                self.bYield = np.random.normal(87.5, 1, 1)
-                self.cYield = np.random.normal(86, 2, 1)
-            elif self.brand == 'SUM':
-                self.bYield = np.random.normal(88.5, 1, 1)
-                self.cYield = np.random.normal(86, 2, 1)
-            elif self.brand == 'BRO' or 'SIS':
-                self.bYield = np.random.normal(75, 2, 1)
-                self.cYield = np.random.normal(75, 2, 1)
-            else:
-                self.bYield = np.random.normal(85, 2, 1)
-                self.cYield = np.random.normal(80, 2, 1)
+        # Set up name, fermtime, bYield, cYield, pYield
+        num = random.randrange(1,1000)
 
-            self.pYield = np.random.normal(94, 2, 1)
+        if num < 600:
+            brand = brands['IPA']
+        if num >= 600:
+            brand = brands['SUM'] 
+        if num > 900:
+            brand = brands['BRO']
 
+        self.fermtime = brand['fermtime']
+        self.bYield = brand['bYield']
+        self.cYield = brand['cYield']
+        self.pYield = np.random.normal(94, 2, 1)
 
 def generate_tanks(count_240, count_90):
+    """Given numbers of 240 barrel (3 turn) and 90 barrel (1 turn) tanks, generate em"""
     tanks = []
     for i in range(count_240):
         tanks.append(Tank('(240)FV ' + str(i), 3))
@@ -93,12 +84,13 @@ def generate_tanks(count_240, count_90):
 
 def simulation(start,end,tanks):
 
-  endDate = end
   delta = datetime.timedelta(days=1)
   d = start
   weekend = set([5,6])
+  # first turn -- a turn is a brewhouse unit of work. brewhouses can do some max
+  # num of these per day.
   turn = 1
-  brewcheck = 0
+
   weekSums = []
   
   f = open('testCSV.csv', 'w+')
@@ -106,12 +98,7 @@ def simulation(start,end,tanks):
   writer.writerow( ('Tank', 'Brand', 'Date', 'Turn Bucket') )
 
   def emptyTanks():
-    emptyList = []
-    for tank in tanks:
-        if tank.filled() == False:
-            emptyList.append(tank.name)
-    return emptyList        
-    emptyList = []
+    return [tank.name for tank in tanks if not tank.is_filled()]
 
   while d <= end:
 
@@ -119,32 +106,32 @@ def simulation(start,end,tanks):
         
         emptyList = emptyTanks()
         
-        while tank.filled() == False and d.weekday() not in weekend and turn < 4:
-            tank.brews += 1
-            if tank.brews == 1:
-                # fill tank with random brew
-                tank.updateFill()
-                #print "Tank ", tank.name, " filled with ", tank.brand, tank.finishdays
+        while tank.is_filled() == False and d.weekday() not in weekend and turn < 4:
+            tank.num_brews_in_tank += 1
+            if tank.num_brews_in_tank == 1:
+                # fill tank with random brand
+                tank.update_fill()
+                #print "Tank ", tank.name, " filled with ", tank.brand, tank.brand.fermtime
             writer.writerow( (tank.name, tank.brand, d.strftime("%a %Y-%m-%d"), turn) )
             turn += 1
         
+        # to prevent loop getting stuck on weekend
         if len(emptyList) == 0 or d.weekday() in weekend:
             turn += 1
             if turn < 4:
                 writer.writerow( ("EMPTY", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
         
+        # ... 
         if turn > 3:
             turn = 1
             d += delta
             for tank in tanks:
-                tank.dayTick()
-                tank.checkFinish()
+                tank.day_tick()
+                tank.reset_tank_if_complete()
         
+            # Sunday
             if d.weekday() == 6:
-                l = []
-                for tank in tanks:
-                    l.append(tank.totalBBLs)
-                bblSum = sum(l)
+                bblSum = sum([tank.totalBBLs for tank in tanks])
                 if bblSum > 0:
                     weekSums.append(bblSum) 
                 #print "total BBLs at end of week: ", bblSum 
@@ -157,17 +144,14 @@ def simulation(start,end,tanks):
   #print "total bbls for period:  ", bblSum
   f.close()
 
-#RUN SIMULATION!!
-start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
-end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
-tanks = generate_tanks(5,7) 
+# RUN SIMULATION!!
+if __name__ == '__main__':
+    start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
+    end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
+    tanks = generate_tanks(5,7) 
 
-for i in range(5):
+    for i in range(5):
+        simulation(start,end,tanks)
 
-    simulation(start,end,tanks)
-
-# add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
-# random unplanned downtime, yield entry, split tanks overnight boolean, ...
-
-
-
+    # add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
+    # random unplanned downtime, yield entry, split tanks overnight boolean, ...
