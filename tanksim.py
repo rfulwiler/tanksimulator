@@ -79,64 +79,67 @@ def generate_tanks(count_240, count_90):
     return ([Tank('(240)FV ' + str(i), 3) for i in range(count_240)] + 
             [Tank('(90)FV ' + str(i), 1) for i in range(count_90)])
 
-def get_empty_tanks(tanks):
-    """Get the the tanks that are not filled"""
-    return [tank for tank in tanks if not tank.is_filled()]
-
 def simulation(start,end,tanks,maxturns,daysoff):
-  d = start
-  delta = datetime.timedelta(days=1)
-  # first turn -- a turn is a brewhouse unit of work. brewhouses can do some max
-  # num of these per day.
-  turn = 1
-  week_sums = []
+    d = start
+    delta = datetime.timedelta(days=1)
+    # first turn -- a turn is a brewhouse unit of work. brewhouses can do some max
+    # num of these per day.
+    turn = 1
+    week_sums = []
 
-  f = open('testCSV.csv', 'w+')
-  writer = csv.writer(f)
-  writer.writerow( ('Tank', 'Brand', 'Date', 'Turn Bucket') )
+    f = open('testCSV.csv', 'w+')
+    writer = csv.writer(f)
+    writer.writerow( ('Tank', 'Brand', 'Date', 'Turn Bucket') )
 
-  while d <= end:
+    # for each day
+    while d <= end:
 
-    for tank in tanks:
-        
-        while tank.is_filled() == False and d.weekday() not in daysoff and turn <= maxturns:
-            tank.num_brews_in_tank += 1
-            if tank.num_brews_in_tank == 1:
-                # fill tank with random brand
-                tank.update_fill()
-                #print "Tank ", tank.name, " filled with ", tank.brand, tank.brand.ferm_time
+        # for each tank
+        for tank in tanks:
+            
+            # if a weekday, and tank is not filled, and the turn count is not more than maxturns,
+            # increment the brews in the tank and the turn until tank is filled or turn is greater
+            # than maxturns
+            while tank.is_filled() == False and d.weekday() not in daysoff and turn <= maxturns:
+                tank.num_brews_in_tank += 1
+                if tank.num_brews_in_tank == 1:
+                    # fill tank with random brand
+                    tank.update_fill()
+                    #print "Tank ", tank.name, " filled with ", tank.brand, tank.brand.ferm_time
 
-            writer.writerow( (tank.name, tank.brand, d.strftime("%a %Y-%m-%d"), turn) )
-            turn += 1
-        
-        # to prevent loop getting stuck on daysoff
-        if not get_empty_tanks(tanks) or d.weekday() in daysoff:
-            if turn <= maxturns:
-                writer.writerow( ("EMPTY", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
-            turn += 1
+                writer.writerow( (tank.name, tank.brand, d.strftime("%a %Y-%m-%d"), turn) )
+                turn += 1
+            
+            # to prevent loop getting stuck on daysoff:
+            # if all the tanks are full or it is the weekend, increment the turn.
+            if all([tank.is_filled() for tank in tanks]) or d.weekday() in daysoff:
+                if turn <= maxturns:
+                    writer.writerow( ("EMPTY", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
+                turn += 1
 
-        # ... 
-        if turn > maxturns:
-            turn = 1
-            d += delta
-            for tank in tanks:
-                tank.day_tick()
-                tank.reset_tank_if_complete()
-        
-            # Sunday
-            if d.weekday() == 6:
-                bbl_sum = sum([tank.total_bbls for tank in tanks])
-                if bbl_sum > 0:
+            # if we have exceeded maxturns, reset the turn count, increment the day,
+            # then for each tank go through and increment its ferm_days if applicable
+            # and reset the tank if applicable
+            if turn > maxturns:
+                turn = 1
+                d += delta
+                for tank in tanks:
+                    tank.day_tick()
+                    tank.reset_tank_if_complete()
+            
+                # if sunday, more like sum-day!, aggregate some data that is
+                # reported at the end
+                if d.weekday() == 6:
+                    bbl_sum = sum([tank.total_bbls for tank in tanks])
                     week_sums.append(bbl_sum) 
-                #print "total BBLs at end of week: ", bbl_sum 
-                #print week_sums
-                week_totals = [t - s for s, t in zip(week_sums, week_sums[1:])]
-                #print week_totals
+                    #print "total BBLs at end of week: ", bbl_sum 
+                    #print week_sums
 
-  #print week_sums
-  print "Average Weekly Simulated BBLs: ", round(sum(week_totals)/len(week_totals), 2)
-  #print "total bbls for period:  ", bbl_sum
-  f.close()
+    week_totals = [t - s for s, t in zip(week_sums, week_sums[1:])]
+    #print week_sums
+    print "Average Weekly Simulated BBLs: ", round(sum(week_totals)/len(week_totals), 2)
+    #print "total bbls for period:  ", bbl_sum
+    f.close()
 
 # RUN SIMULATION!!
 if __name__ == '__main__':
