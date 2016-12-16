@@ -15,6 +15,8 @@ class Tank:
         self.fermdays = 0
         # Total barrels produced from one fill of the tank 
         self.totalBBLs = 0
+        # boolean flag for if tank has been checked today
+        self.is_checked = False
 
     def is_filled(self):
         return self.num_brews_in_tank == self.maxnum_brews_in_tank
@@ -25,6 +27,7 @@ class Tank:
 
     def day_tick(self):
         """When tank is full, increment fermdays by 1"""
+        self.is_checked = False
         if self.is_filled():
             self.fermdays += 1
     
@@ -42,16 +45,19 @@ class Brand:
     def __init__(self):
         brands = {
             "IPA": {
+                "brand" : "IPA",
                 "fermtime": 10,
                 "bYield": np.random.normal(87.5, 1, 1),
                 "cYield": np.random.normal(86, 2, 1),
             },
             "SUM": {
+                "brand" : "SUM",
                 "fermtime": 9, 
                 "bYield": np.random.normal(88.5, 1, 1),
                 "cYield": np.random.normal(86, 2, 1),
             },
             "BRO": {
+                "brand" : "BRO",
                 "fermtime": 12, 
                 "bYield": np.random.normal(75, 2, 1),
                 "cYield": np.random.normal(75, 2, 1),
@@ -68,6 +74,7 @@ class Brand:
         if num > 900:
             brand = brands['BRO']
 
+        self.name = brand['brand']
         self.fermtime = brand['fermtime']
         self.bYield = brand['bYield']
         self.cYield = brand['cYield']
@@ -85,6 +92,9 @@ def generate_tanks(count_240, count_90):
 
 def emptyTanks():
     return [tank.name for tank in tanks if not tank.is_filled()]
+
+def checkedTanks():
+    return [tank.name for tank in tanks if not tank.is_checked]
 
 def simulation(start,end,tanks,maxturns,daysoff):
 
@@ -105,27 +115,68 @@ def simulation(start,end,tanks,maxturns,daysoff):
   while d <= end:
 
     for tank in tanks:
-        
+
+        def num_turns_left_in_tank():
+            return tank.maxnum_brews_in_tank - tank.num_brews_in_tank
+
+        def num_turns_left_in_day():
+            return maxturns - (turn - 1)
+
         emptyList = emptyTanks()
+        checkList = checkedTanks()
 
-        while tank.is_filled() == False and d.weekday() not in daysoff and turn <= maxturns:
-            tank.num_brews_in_tank += 1
-            if tank.num_brews_in_tank == 1:
-                # fill tank with random brand
-                tank.update_fill()
-                #print "Tank ", tank.name, " filled with ", tank.brand, tank.brand.fermtime
+        while tank.is_filled() == False and d.weekday() not in daysoff and turn <= maxturns and tank.is_checked == False:
+            #print "tank:", num_turns_left_in_tank(), ",day:", num_turns_left_in_day()
+            if num_turns_left_in_tank() <= num_turns_left_in_day():
+                tank.num_brews_in_tank += 1
+                if tank.num_brews_in_tank == 1:
+                    # fill tank with random brand
+                    tank.update_fill()
+                    #print "first fill for", tank.name, "!"
+                writer.writerow( (tank.name, tank.brand.name, d.strftime("%a %Y-%m-%d"), turn) )
+                print turn, tank.name, "turn number: ", turn, tank.brand.name, d.strftime("%a %Y-%m-%d")
+                turn += 1
+                if tank.is_filled():
+                    tank.is_checked = True
+                    #print checkList
+            else:
+                tank.is_checked = True
+                print "Tank Checked: ",tank.name
+            
+            
+                
+            #print tank.name, tank.brand.name, d.strftime("%a %Y-%m-%d"), turn
+            #turn += 1
 
-            writer.writerow( (tank.name, tank.brand, d.strftime("%a %Y-%m-%d"), turn) )
-            turn += 1
         
         # to prevent loop getting stuck on daysoff
-        if len(emptyList) == 0 or d.weekday() in daysoff:
+        #print "# of empties: ", len(emptyList), emptyList
+        #print "empty list: ", len(emptyList)
+        if len(emptyList) == 0:
             if turn <= maxturns:
-                writer.writerow( ("EMPTY", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
+                writer.writerow( ("No Tanks", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
+            print turn, "No Tanks", d.strftime("%a %Y-%m-%d")
             turn += 1
+        
+        if d.weekday() in daysoff:
+            if turn <= maxturns:
+                writer.writerow( ("Day Off", "NULL", d.strftime("%a %Y-%m-%d"), turn) )  
+            turn += 1 
+
+        #print checkList
+        for tank in tanks:
+            if tank.is_filled():
+                tank.is_checked = True
+        #print "# of checked: ", len(checkList), checkList
+        if len(checkList) == 0:
+            if turn <= maxturns:
+                writer.writerow( ("Not Enough Turns", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
+            print turn, "not enough fill time", tank.name
+            turn += 1
+            
 
         # ... 
-        if turn > 3:
+        if turn > maxturns:
             turn = 1
             d += delta
             for tank in tanks:
@@ -148,13 +199,13 @@ def simulation(start,end,tanks,maxturns,daysoff):
   f.close()
 
 #RUN SIMULATION!!
-start = datetime.datetime.strptime('2016-1-1', '%Y-%m-%d')
+start = datetime.datetime.strptime('2016-2-1', '%Y-%m-%d')
 end = datetime.datetime.strptime('2016-4-1', '%Y-%m-%d')
 tanks = generate_tanks(5,7) 
-maxturns = 3
+maxturns = 4
 daysoff = set([5,6])
 
-for i in range(5):
+for i in range(1):
 
     simulation(start,end,tanks,maxturns,daysoff)
 
