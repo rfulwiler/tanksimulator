@@ -1,6 +1,5 @@
 import datetime
 import random
-import numpy as np
 import csv
 
 
@@ -48,20 +47,20 @@ class Brand:
             "IPA": {
                 "brand" : "IPA",
                 "ferm_time": 10,
-                "brew_yield": np.random.normal(87.5, 1, 1),
-                "cellar_yield": np.random.normal(86, 2, 1),
+                "brew_yield": random.normalvariate(87.5, 1),
+                "cellar_yield": random.normalvariate(86, 2),
             },
             "SUM": {
                 "brand" : "SUM",
                 "ferm_time": 9, 
-                "brew_yield": np.random.normal(88.5, 1, 1),
-                "cellar_yield": np.random.normal(86, 2, 1),
+                "brew_yield": random.normalvariate(88.5, 1),
+                "cellar_yield": random.normalvariate(86, 2),
             },
             "BRO": {
                 "brand" : "BRO",
                 "ferm_time": 12, 
-                "brew_yield": np.random.normal(75, 2, 1),
-                "cellar_yield": np.random.normal(75, 2, 1),
+                "brew_yield": random.normalvariate(75, 2),
+                "cellar_yield": random.normalvariate(75, 2),
             },
         }
 
@@ -79,7 +78,7 @@ class Brand:
         self.ferm_time = brand['ferm_time']
         self.brew_yield = brand['brew_yield']
         self.cellar_yield = brand['cellar_yield']
-        self.packaging_yield = np.random.normal(94, 2, 1)
+        self.packaging_yield = random.normalvariate(94, 2)
 
 def generate_tanks(count_240, count_90):
     """Given numbers of 240 barrel (3 turn) and 90 barrel (1 turn) tanks, generate em"""
