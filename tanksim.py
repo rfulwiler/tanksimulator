@@ -17,7 +17,7 @@ class Tank:
         self.total_bbls = 0
 
     def is_filled(self):
-        return self.num_brews_in_tank == self.maxnum_brews_in_tank
+        return self.num_brews_in_tank >= self.maxnum_brews_in_tank
 
     def day_tick(self):
         """When tank is full, increment ferm_days by 1"""
@@ -28,7 +28,7 @@ class Tank:
 
     def add_turn(self):
         self.num_brews_in_tank += 1
-    
+        
     def get_volume(self):
         """Factor in brew yield, cellar yield, packaging yield per each brew in tank"""
         return (self.num_brews_in_tank * self.brand.brew_yield * 
@@ -41,20 +41,26 @@ class Tank:
             self.ferm_days = 0
             self.brand = Brand()
 
+    def num_turns_left_in_tank(self):
+        return self.maxnum_brews_in_tank - self.num_brews_in_tank
+
 class Brand:
     def __init__(self):
         brands = {
             "IPA": {
+                "brand" : "IPA",
                 "ferm_time": 10,
                 "brew_yield": np.random.normal(87.5, 1, 1),
                 "cellar_yield": np.random.normal(86, 2, 1),
             },
             "SUM": {
+                "brand" : "SUM",
                 "ferm_time": 9, 
                 "brew_yield": np.random.normal(88.5, 1, 1),
                 "cellar_yield": np.random.normal(86, 2, 1),
             },
             "BRO": {
+                "brand" : "BRO",
                 "ferm_time": 12, 
                 "brew_yield": np.random.normal(75, 2, 1),
                 "cellar_yield": np.random.normal(75, 2, 1),
@@ -71,6 +77,7 @@ class Brand:
         if num > 900:
             brand = brands['BRO']
 
+        self.name = brand['brand']
         self.ferm_time = brand['ferm_time']
         self.brew_yield = brand['brew_yield']
         self.cellar_yield = brand['cellar_yield']
@@ -86,10 +93,11 @@ def generate_tanks(count_240, count_90):
     return ([Tank('(240)FV ' + str(i), 3) for i in range(count_240)] + 
             [Tank('(90)FV ' + str(i), 1) for i in range(count_90)])
 
-def get_first_unfilled_tank(tanks):
+def get_first_unfilled_tank(tanks, turns_per_day, turn):
     for tank in tanks:
         if not tank.is_filled():
-            return tank
+            if tank.num_turns_left_in_tank() <= turns_per_day - turn:
+                return tank
 
     return None
 
@@ -121,12 +129,14 @@ def simulation(start_date, end_date, tanks, turns_per_day, days_off):
         for turn in range(turns_per_day):
 
             # find the first tank that is not filled 
-            first_unfilled_tank = get_first_unfilled_tank(tanks)
+            first_unfilled_tank = get_first_unfilled_tank(tanks, turns_per_day, turn)
 
             # if there is one, and it is a legit day to be filling tanks,
             if (first_unfilled_tank and day.weekday() not in days_off):
                 # put this turn into that tank
                 first_unfilled_tank.add_turn()
+
+                writer.writerow( (first_unfilled_tank.name, first_unfilled_tank.brand.name, day, turn+1) )
                 
         week_totals = [t - s for s, t in zip(week_sums, week_sums[1:])]
 
@@ -138,9 +148,9 @@ def simulation(start_date, end_date, tanks, turns_per_day, days_off):
 # RUN SIMULATION!!
 if __name__ == '__main__':
     start_date = datetime.date(2016, 1, 1)
-    end_date = datetime.date(2016, 4, 1)
+    end_date = datetime.date(2016, 2, 1)
     tanks = generate_tanks(5, 7) 
-    turns_per_day = 4
+    turns_per_day = 2
     days_off = set([5, 6])
 
     for i in range(5):
