@@ -129,21 +129,21 @@ def simulation(start,end,tanks,maxturns,daysoff):
                         # fill tank with random brand
                         tank.update_fill()
                     writer.writerow( (tank.name, tank.brand.name, d.strftime("%a %Y-%m-%d"), turn) )
-                    print turn, tank.name, "turn number: ", turn, tank.brand.name, d.strftime("%a %Y-%m-%d")
+                    #print turn, tank.name, "turn number: ", turn, tank.brand.name, d.strftime("%a %Y-%m-%d")
                     turn += 1
                     if tank.is_filled():
                         tank.is_checked = True
                     
                 else:
                     tank.is_checked = True
-                    print "Tank Checked: ",tank.name
+                    #print "Tank Checked: ",tank.name
             
             
             # if all the tanks are full, increment the turn
             if len(empty_list) == 0:
                 if turn <= maxturns:
                     writer.writerow( ("No Tanks", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
-                print turn, "No Tanks", d.strftime("%a %Y-%m-%d")
+                #print turn, "No Tanks", d.strftime("%a %Y-%m-%d")
                 turn += 1
             
             # to prevent loop getting stuck on daysoff, increment turns through days off
@@ -165,7 +165,7 @@ def simulation(start,end,tanks,maxturns,daysoff):
             if len(checked_list) == 0:
                 if turn <= maxturns:
                     writer.writerow( ("Not Enough Turns", "NULL", d.strftime("%a %Y-%m-%d"), turn) )
-                print turn, "not enough fill time", tank.name
+                #print turn, "not enough fill time", tank.name
                 turn += 1
 
             # if we have exceeded maxturns, reset the turn count, increment the day,
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     maxturns = 3
     daysoff = set([5,6])
 
-    for i in range(1):
+    for i in range(5):
         simulation(start,end,tanks,maxturns,daysoff)
 
     # add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
