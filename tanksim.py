@@ -137,6 +137,12 @@ def simulation(start_date, end_date, tanks, turns_per_day, days_off):
                 first_unfilled_tank.add_turn()
 
                 writer.writerow( (first_unfilled_tank.name, first_unfilled_tank.brand.name, day, turn+1) )
+
+            if day.weekday() in days_off:
+                writer.writerow( ('NULL', 'Day Off', day, turn+1) )
+
+            if first_unfilled_tank == None and day.weekday() not in days_off:
+                writer.writerow( ('NULL', 'No Tank', day, turn+1) )
                 
         week_totals = [t - s for s, t in zip(week_sums, week_sums[1:])]
 
@@ -149,11 +155,11 @@ def simulation(start_date, end_date, tanks, turns_per_day, days_off):
 if __name__ == '__main__':
     start_date = datetime.date(2016, 1, 1)
     end_date = datetime.date(2016, 2, 1)
-    tanks = generate_tanks(5, 7) 
-    turns_per_day = 2
+    turns_per_day = 4
     days_off = set([5, 6])
 
     for i in range(5):
+        tanks = generate_tanks(5, 7) 
         simulation(start_date, end_date, tanks, turns_per_day, days_off)
 
     # add user inputs: max turns per day, brewdays per week, holidays/planned downtime, 
